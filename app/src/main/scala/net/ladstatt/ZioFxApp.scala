@@ -1,7 +1,7 @@
 package net.ladstatt
 
 
-import javafx.beans.property.{Property, SimpleObjectProperty, StringProperty}
+import javafx.beans.property.{Property, StringProperty}
 import javafx.scene.Scene
 import javafx.scene.control.{Button, TextArea, ToolBar}
 import javafx.scene.layout.VBox
@@ -25,14 +25,12 @@ class ZioFxApp extends javafx.application.Application {
   lazy val zioRt: zio.Runtime[Any] = zio.Runtime.default
 
   def start(stage: Stage): Unit = {
-    val b1 = new Button("Helloworld 1")
-    val b2 = new Button("Helloworld 2")
-    val toolBar = new ToolBar(b1,b2)
+    val b1 = new Button("Start number guessing")
+    val toolBar = new ToolBar(b1)
     val textArea = new TextArea()
     val vBox = new VBox(toolBar, textArea)
 
-    b1.setOnAction(_ => ZioOps.runUnsafeTask(zioRt, ZioOps.printlnVariantA))
-    b2.setOnAction(_ => ZioOps.runUnsafeTask(zioRt, ZioOps.printlnVariantB))
+    b1.setOnAction(_ => ZioOps.runUnsafeTask(zioRt, ZioOps.numberGuessing))
 
     val scene = new Scene(vBox, 350, 100)
     stage.setScene(scene)
@@ -82,6 +80,20 @@ object ZioOps {
          name <- readLine
          _ <- printLine(s"Hello $name!")
          } yield ()
+
+  val random = ZIO.attempt(scala.util.Random.nextInt(3) + 1)
+
+  def guessEffect(i: String, r: Int): Task[Unit] = if (i == r.toString) {
+    printLine("You guessed right!")
+  } else {
+    printLine(s"You guessed wrong, the number was $r!")
+  }
+
+  val numberGuessing: Task[Unit] = for {r <- random
+                                        _ <- printLine("Guess a number from 1 to 3:")
+                                        i <- readLine
+                                        _ <- guessEffect(i, r)
+                                        } yield ()
 
 }
 
