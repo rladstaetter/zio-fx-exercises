@@ -2,7 +2,14 @@ package net.ladstatt
 
 object MIO {
 
-  /** first, run self, after taht, run that, and finally combine both results in a new MIO applying given function */
+  /** my take for a collectAll method */
+  def collectAll[R, E, A](in: Iterable[MIO[R, E, A]]): MIO[R, E, List[A]] = {
+    in.foldLeft(MIO[R, E, List[A]](_ => Right(List()))) {
+      case (a, b) => zipWith(a, b)((l, e) => l :+ e)
+    }
+  }
+
+  /** first, run self, then run that, and finally combine both results in a new MIO applying given function */
   def zipWith[R, E, A, B, C](self: MIO[R, E, A],
                              that: MIO[R, E, B])(f: (A, B) => C): MIO[R, E, C] =
     MIO(r => self.run(r).flatMap {
@@ -14,8 +21,7 @@ object MIO {
       case t: Throwable => Left(t)
     })
 
-  def fail[E](e: => E): MIO[Any, E, Nothing] =
-    MIO(_ => Left(e))
+  def fail[E](e: => E): MIO[Any, E, Nothing] = MIO(_ => Left(e))
 }
 
 final case class MIO[-R, +E, +A](run: R => Either[E, A]) {
@@ -34,5 +40,7 @@ object MIOTest {
   val one = MIO.attempt(1)
   val two = MIO.attempt(2)
   val three = MIO.zipWith(one, two)((a, b) => s"$a $b")
+
+  val collectAllTest: MIO[Any, Throwable, List[Int]] = MIO.collectAll(List(one, two))
 
 }
