@@ -2,6 +2,9 @@ package net.ladstatt
 
 object MIO {
 
+  def orElse[R, E, A](self: MIO[R, E, A], that: MIO[R, E, A]): MIO[R, E, A] =
+    MIO(r => self.run(r).orElse(that.run(r)))
+
 
   def foreach[R, E, A, B](in: Iterable[A])(f: A => MIO[R, E, B]): MIO[R, E, List[B]] =
     collectAll(for (i <- in) yield f(i))
