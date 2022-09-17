@@ -4,7 +4,7 @@ package net.ladstatt
 import javafx.beans.property.{Property, SimpleObjectProperty, StringProperty}
 import javafx.scene.Scene
 import javafx.scene.control.{Button, TextArea, ToolBar}
-import javafx.scene.layout.{HBox, VBox}
+import javafx.scene.layout.VBox
 import javafx.stage.{FileChooser, Stage}
 import zio.{Task, ZIO}
 
@@ -24,33 +24,15 @@ class ZioFxApp extends javafx.application.Application {
   /** zio runtime to help execute ZIO app */
   lazy val zioRt: zio.Runtime[Any] = zio.Runtime.default
 
-  val srcFileProperty = new SimpleObjectProperty[File]()
-  val destFileProperty = new SimpleObjectProperty[File]()
-
   def start(stage: Stage): Unit = {
-    val srcFileChooser = new FileChooser()
-    srcFileChooser.setTitle("Choose source file")
-    val destFileChooser = new FileChooser()
-    destFileChooser.setTitle("Choose target file")
-    val srcButton = new Button("Choose source file")
-    val destButton = new Button("Choose destination file")
-    val copyButton = new Button("copy")
+    val b1 = new Button("Helloworld 1")
+    val b2 = new Button("Helloworld 2")
+    val toolBar = new ToolBar(b1,b2)
     val textArea = new TextArea()
-    val toolBar = new ToolBar(srcButton, destButton, copyButton)
     val vBox = new VBox(toolBar, textArea)
 
-    srcButton.setOnAction(_ =>
-      ZioOps.runUnsafeTask(zioRt, for {f <- ZioOps.showOpenFileChooser(srcFileChooser)
-                                       _ <- ZioOps.updateProp(srcFileProperty, f)} yield ())
-    )
-    destButton.setOnAction(_ =>
-      ZioOps.runUnsafeTask(zioRt, for {f <- ZioOps.showSaveFileChooser(destFileChooser)
-                                       _ <- ZioOps.updateProp(destFileProperty, f)} yield ())
-    )
-    copyButton.setOnAction(_ => {
-      ZioOps.runUnsafeTask(zioRt, for {dest <- ZioOps.copyFile(srcFileProperty.get(), destFileProperty.get())
-                                       _ <- ZioOps.setStringProperty(textArea.textProperty(), s"Wrote ${dest.toString}")} yield ())
-    })
+    b1.setOnAction(_ => ZioOps.runUnsafeTask(zioRt, ZioOps.printlnVariantA))
+    b2.setOnAction(_ => ZioOps.runUnsafeTask(zioRt, ZioOps.printlnVariantB))
 
     val scene = new Scene(vBox, 350, 100)
     stage.setScene(scene)
@@ -86,6 +68,20 @@ object ZioOps {
   def readFile(file: File): Task[String] = ZIO.attempt(Ops.readFile(file))
 
   def writeFile(path: File, content: String): Task[Unit] = ZIO.attempt(Ops.writeFile(path, content))
+
+  def printLine(line: String) = ZIO.attempt(println(line))
+
+  val readLine = ZIO.attempt(scala.io.StdIn.readLine())
+
+
+  val printlnVariantA = printLine("What is your name?").flatMap(_ =>
+    readLine.flatMap(name => printLine(s"Hello, ${name}!")))
+
+  val printlnVariantB =
+    for {_ <- printLine("What is your name?")
+         name <- readLine
+         _ <- printLine(s"Hello $name!")
+         } yield ()
 
 }
 
