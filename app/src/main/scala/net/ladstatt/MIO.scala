@@ -2,6 +2,10 @@ package net.ladstatt
 
 object MIO {
 
+
+  def foreach[R, E, A, B](in: Iterable[A])(f: A => MIO[R, E, B]): MIO[R, E, List[B]] =
+    collectAll(for (i <- in) yield f(i))
+
   /** my take for a collectAll method */
   def collectAll[R, E, A](in: Iterable[MIO[R, E, A]]): MIO[R, E, List[A]] = {
     in.foldLeft(MIO[R, E, List[A]](_ => Right(List()))) {
