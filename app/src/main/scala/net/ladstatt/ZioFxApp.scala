@@ -8,6 +8,8 @@ import javafx.scene.layout.{HBox, VBox}
 import javafx.stage.Stage
 import zio.{Task, ZIO}
 
+import java.io.{File, PrintWriter}
+
 object ZioFxApp {
 
   def main(args: Array[String]): Unit = {
@@ -23,8 +25,8 @@ class ZioFxApp extends javafx.application.Application {
   lazy val zioRt = zio.Runtime.default
 
   def start(stage: Stage): Unit = {
-    val button = new Button("Read File with ZIO!")
-    val textField = new TextField("pom.xml")
+    val button = new Button("Write a file with ZIO!")
+    val textField = new TextField("output.txt")
     val textArea = new TextArea()
     val hBox = new HBox(textField, button)
     val vBox = new VBox(hBox, textArea)
@@ -32,7 +34,7 @@ class ZioFxApp extends javafx.application.Application {
     /** handle button click */
     button.setOnAction(e => {
       zio.Unsafe.unsafe { implicit unsafe =>
-        zioRt.unsafe.run(ZioOps.updateTextArea(textField,textArea)).getOrThrowFiberFailure()
+        zioRt.unsafe.run(ZioOps.writeFile(textField.getText, textArea.getText)).getOrThrowFiberFailure()
       }
     })
     val scene = new Scene(vBox, 400, 200)
@@ -50,9 +52,14 @@ object ZioOps {
     for {fileName <- ZioOps.readStringProperty(textField.textProperty())
          content <- ZioOps.readFile(fileName)
          _ <- ZioOps.setStringProperty(textArea.textProperty(), content)} yield ()
+
   def readStringProperty(stringProperty: StringProperty): Task[String] = ZIO.attempt(stringProperty.get())
+
   def setStringProperty(stringProperty: StringProperty, value: String): Task[Unit] = ZIO.attempt(stringProperty.set(value))
+
   def readFile(file: String): Task[String] = ZIO.attempt(Ops.readFile(file))
+
+  def writeFile(path: String, content: String): Task[Unit] = ZIO.attempt(Ops.writeFile(path, content))
 
 }
 
@@ -63,4 +70,8 @@ object Ops {
     try source.getLines().mkString("\n") finally source.close()
   }
 
+  def writeFile(file: String, text: String): Unit = {
+    val pw = new PrintWriter(new File(file))
+    try pw.write(text) finally pw.close()
+  }
 }
