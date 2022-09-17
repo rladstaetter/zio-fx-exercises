@@ -5,7 +5,7 @@ import javafx.scene.Scene
 import javafx.scene.control.Button
 import javafx.scene.layout.BorderPane
 import javafx.stage.Stage
-import zio.ZIO
+import zio.{Task, ZIO}
 
 object ZioFxApp {
 
@@ -16,18 +16,18 @@ object ZioFxApp {
 }
 
 
-class ZioFxApp extends javafx.application.Application  {
+class ZioFxApp extends javafx.application.Application {
 
   /** zio runtime to help execute ZIO app */
   lazy val zioRt = zio.Runtime.default
 
   def start(stage: Stage): Unit = {
-    val button = new Button("Invoke ZIO!")
+    val button = new Button("Read File with ZIO!")
 
     /** handle button click */
     button.setOnAction(e => {
       zio.Unsafe.unsafe { implicit unsafe =>
-        zioRt.unsafe.run(ZIO.attempt(println("Hello World!"))).getOrThrowFiberFailure()
+        zioRt.unsafe.run(ZioOps.readFileWithInput).getOrThrowFiberFailure()
       }
     })
     val bp = new BorderPane(button)
@@ -36,5 +36,29 @@ class ZioFxApp extends javafx.application.Application  {
     stage.show()
   }
 
+
 }
 
+object ZioOps {
+
+  val readFileWithInput: Task[Unit] =
+    for {fileName <- readLine()
+         cnt <- readFile(fileName)
+         _ <- printLine(cnt)} yield ()
+
+  def printLine(s: String): Task[Unit] = ZIO.attempt(println(s))
+
+  def readLine(): Task[String] = ZIO.attempt("pom.xml")
+
+  def readFile(file: String): Task[String] = ZIO.attempt(Ops.readFile(file))
+
+}
+
+object Ops {
+
+  def readFile(file: String): String = {
+    val source = scala.io.Source.fromFile(file)
+    try source.getLines().mkString("\n") finally source.close()
+  }
+
+}
